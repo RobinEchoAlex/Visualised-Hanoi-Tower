@@ -29,9 +29,8 @@ MAIN PROC FAR
     mov ax,0
     
     call init  
-    ;call draw_base
-    ;call draw_pillar
-    ;call draw_box
+    call draw_base
+    call draw_pillar
     MOV PLATE_NUM,9             ;TODO can be customised
     call init_plate
 
@@ -183,11 +182,5 @@ dp_loop1:
     RET
 DRAW_PILLAR ENDP
 
-DRAW_BOX PROC NEAR  
-    PUSHA
-    POPA
-    RET
-DRAW_BOX ENDP
-
 code ends
-end
+end main
