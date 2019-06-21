@@ -1,5 +1,5 @@
 ; ref http://devdocs.inightmare.org/tutorials/x86-assembly-graphics-part-i-mode-13h.html
-;.286
+.286
 data segment     
     PLATE_NUM DW 0
     pillarA dw 0,60,180,'A',0,45 dup(0)
@@ -10,7 +10,12 @@ data segment
     PILLAR_COLOUR EQU 15
     PALATTE DB 2,126,150,172,195,213,43,12,7,31 
     active_pillar dw 0          ;use to pass parameter to DRAW_PLATE and ERASE_PLATE
-                                ;0 for A, 1 for B, 2 for C
+                                ;0 for A, 1 for B, 2 for C     
+    DISP DB 0AH , 0DH , ' MOVE ONE FROM '
+SRC DB ?
+    DB ' TO '
+DST DB ? 
+    DB 0AH , 0DH , '$'                            
 data ends
 
 stack segment
@@ -31,8 +36,18 @@ MAIN PROC FAR
     call init  
     call draw_base
     call draw_pillar
-    MOV PLATE_NUM,9             ;TODO can be customised
-    call init_plate
+    MOV PLATE_NUM,6            ;TODO can be customised
+    call init_plate   
+    
+    MOV AX,PLATE_NUM
+    MOV SI,word ptr 'A'
+    MOV BX,word ptr 'B'
+    MOV DI,word ptr 'C'
+    PUSH AX
+    PUSH SI
+    PUSH BX
+    PUSH DI
+    CALL HANOI_CON
 
     mov ax, 4c00h ; exit to operating system.
     int 21h    
@@ -57,7 +72,6 @@ ip_loop1:
     MOV BX,pillarA+2    ;calculate X
     SUB BX,DI 
     SUB DI,3
-    ADD BX,20           ;add the left blank
     MOV pillarA[SI],BX  
     ADD SI,2
     MOV AX,10       ;calculate Y
@@ -73,7 +87,7 @@ ip_loop1:
     MOV pillarA[SI],DI    
     SUB DI,3
     ADD SI,2        
-    MOV BX,15           ;calcullate height
+    MOV BX,15            ;calculate height
     MOV pillarA[SI],BX
     ADD SI,2         
     MOV BX,CX            ;assemble colour
@@ -129,6 +143,48 @@ i_loop:
     POPA
     RET
 DRAW_PLATE ENDP
+
+ERASE_PLATE PROC NEAR
+    PUSHA
+    MOV SI,0
+    CMP active_pillar,0          ;locate which pillar
+    JZ ep_deviation    
+    ADd SI,100                   ;point to B pillar
+    CMP active_pillar,1
+    JZ ep_deviation
+    ADD SI,100                   ;point to C pillar
+ep_deviation:
+    MOV AX,pillarA[SI]
+    MOV BX,10
+    MUL BL                  ;deviation is the number of plates(AX) * the bytes every plate take & head info(10)
+    ADD SI,AX
+    mov ax, 0A000h ; the offset to video memory
+    mov es, ax ; load it to ES through AX, becouse immediate operation is not allowed on ES
+    MOV DX,0
+    MOV BX,pillarA[SI+2]    ;start row
+    MOV AX,320
+    MUL BX  
+    MOV DI,AX   ;start row's address
+    ADD DI,pillarA[SI]    ;add start column
+    PUSH DI     ;save the start address
+    MOV CX,BOX_HEIGHT  ;CX = height of box
+oe_loop:
+    MOV DX,pillarA[SI+4]       ;DX = half width of box 
+    SHL DX,1                      
+ie_loop:           
+    MOV BX,0          
+    MOV es:[di],BX   ;colour of the box
+    INC DI
+    DEC DX
+    JNZ ie_loop
+    POP DI
+    ADD DI,320
+    PUSH DI
+    LOOP oe_loop
+    POP DI 
+    POPA
+    RET
+ERASE_PLATE ENDP
     
 DRAW_BASE PROC NEAR
     PUSHA   
@@ -181,6 +237,137 @@ dp_loop1:
     POPA
     RET
 DRAW_PILLAR ENDP
+  
+HANOI_CON PROC NEAR
+    PUSH BP
+    MOV BP,SP
+    MOV AX,10[BP]
+    MOV SI,8[BP]
+    MOV BX,4[BP]
+    MOV DI,6[BP]
+    CMP AL,1
+    JZ move_one
+    DEC AX
+    PUSH AX
+    PUSH SI
+    PUSH BX
+    PUSH DI
+    CALL HANOI_CON ;set parameters and call hanoi to move n-1 plates
+    
+    MOV SI,8[BP]
+    MOV DI,4[BP]
+    PUSH SI
+    PUSH DI
+    CALL MOVE_PLATE
+    
+    MOV AX,10[BP]
+    MOV SI,6[BP]
+    MOV BX,8[BP]
+    MOV DI,4[BP]
+    DEC AX
+    PUSH AX
+    PUSH SI
+    PUSH BX
+    PUSH DI
+    CALL HANOI_CON
+    JMP exit_hanoi
+move_one:
+    MOV SI,8[BP]
+    MOV DI,4[BP]
+    PUSH SI
+    PUSH DI
+    CALL MOVE_PLATE
+exit_hanoi:
+    POP BP 
+    RET 8
+HANOI_CON ENDP
+
+MOVE_PLATE PROC NEAR
+    PUSH BP
+    MOV BP,SP
+    PUSHA
+    MOV AX,6[BP]
+    MOV SRC,AL
+    SUB AL,41H      ;'ABC' to 012  
+    MOV active_pillar,AX
+    CALL ERASE_PLATE
+    
+    MOV SI,0
+    CMP active_pillar,0          ;locate which pillar
+    JZ mp_move1    
+    ADD SI,100                   ;point to B pillar
+    CMP active_pillar,1
+    JZ mp_move1
+    ADD SI,100                   ;point to C pillar
+    
+mp_move1:    
+    MOV AX,pillarA[SI]
+    DEC pillarA[SI]         ;number of the plate in the pillar--
+    MOV BX,10
+    MUL BL                  ;deviation is the number of plates(AX) * the bytes every plate take & head info(10)
+    ADD SI,AX               ;SI point to the start byte of the plate to move
+    
+    MOV AX,4[BP]
+    MOV DST,AL
+    SUB AL,41H
+    MOV active_pillar,AX 
+    
+    MOV DI,0
+    CMP active_pillar,0          ;locate which pillar
+    JZ mp_move2    
+    ADD DI,100                   ;point to B pillar
+    CMP active_pillar,1
+    JZ mp_move2
+    ADD DI,100                   ;point to C pillar
+    
+mp_move2:
+    INC pillarA[DI]         ;number of plate in the pillar++ 
+    MOV CX,pillarA[DI+2]    ;CX= X coor of target pillar  
+    MOV DX,pillarA[DI]      ;DX  = number of plate, for use in calculating Y
+    MOV AX,pillarA[DI]
+    MOV BX,10
+    MUL BL                  ;deviation is the number of plates(AX) * the bytes every plate take & head info(10)
+    ADD DI,AX               ;DI point to the start byte of the plate to placed
+    
+    MOV AX,pillarA[SI+4]    ;move the length
+    MOV pillarA[DI+4],AX
+    SUB CX,AX   
+    MOV AX,CX               ;AX = X of the plate
+    MOV pillarA[DI],AX      ;x of the plate is set
+    
+    MOV BX,15
+    MOV AX,DX               ;AX= number of plate
+    MOV DX,0
+    MUL BL
+    MOV CX,AX               ;CX = AX = 15*number of plate
+    MOV AX,180              
+    SUB AX,CX               ;Y = 180 - 15*number of plate
+    MOV pillarA[DI+2],AX
+    
+    MOV AX,BOX_HEIGHT
+    MOV pillarA[DI+6],AX
+    
+    MOV AX,pillarA[SI+8]
+    MOV pillarA[DI+8],AX    ;colour
+    
+    CALL DRAW_PLATE
+    ;MOV AH,9
+;    LEA DX,DISP
+;    INT 21H         
+
+
+    MOV CX,65535
+delay:
+    LOOP delay 
+    MOV CX,65535
+delay2:
+	LOOP delay2
+    
+    POPA
+    POP BP
+    RET 4
+MOVE_PLATE ENDP
 
 code ends
 end main
+
