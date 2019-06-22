@@ -1,4 +1,3 @@
-; ref http://devdocs.inightmare.org/tutorials/x86-assembly-graphics-part-i-mode-13h.html
 .286
 data segment     
     PLATE_NUM DW 0
@@ -16,7 +15,8 @@ SRC DB ?
     DB ' TO '
 DST DB ? 							  
     DISP_Str_LENGTH dw ($-DiSP)
-    plate_half_width dw 0		;use to compare, if the drawing pointer reaches half-width of the plate, draw a white pillar instead of erasing                            
+    plate_half_width dw 0		;use to compare, if the drawing pointer reaches half-width of the plate, draw a white pillar instead of erasing  
+    hint_str db "Enter the number of plates, between 3-9:",'$'                           
 data ends
 
 stack segment
@@ -34,10 +34,10 @@ MAIN PROC FAR
     mov sp,1024
     mov ax,0
     
-    call init  
+    call init 
+    call set_vga 
     call draw_base
     call draw_pillar
-    MOV PLATE_NUM,5            ;TODO can be customised
     call init_plate   
     
     MOV AX,PLATE_NUM
@@ -54,14 +54,29 @@ MAIN PROC FAR
     int 21h    
 MAIN ENDP 
 
-INIT PROC NEAR 
-    PUSH AX 
+INIT PROC NEAR
+	PUSHA
+	LEA DX,hint_STR
+	MOV AH,9
+	INT 21H
+	MOV AH,1	;read user's choice
+	INT 21H
+	MOV AH,0
+	SUB AL,30H
+	MOV PLATE_num,AX
+	POPA
+	RET
+INIT ENDP
+
+SET_VGA PROC NEAR
+	PUSH AX
+	MOV AH,9 
     MOV AH,00H
     MOV AL,13H
     INT 10H
     POP AX
     RET
-INIT ENDP
+SET_VGA ENDP
 
 INIT_PLATE PROC NEAR
     PUSHA
@@ -416,8 +431,4 @@ DELAY ENDP
 
 code ends
 end main
-
-
-
-
 
