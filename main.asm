@@ -16,7 +16,18 @@ SRC DB ?
 DST DB ? 							  
     DISP_Str_LENGTH dw ($-DiSP)
     plate_half_width dw 0		;use to compare, if the drawing pointer reaches half-width of the plate, draw a white pillar instead of erasing  
-    hint_str db "Enter the number of plates, between 3-9:",'$'                           
+    hint_str db "Enter the number of plates, between 3-9:",'$'  
+    delay_time dw 15             ;time to sleep, measured by system clock ticks  
+    speed_down_str db "speed decreased!"
+    speed_down_str_length dw ($-speed_down_str)
+    speed_up_str db "speed increased!"
+    speed_up_str_length dw ($-speed_up_str)
+    speed_hint_str db "press [ to slow down, ] to speed up"
+    speed_hint_str_length dw ( $-speed_hint_str)
+   ; total_move_num dw 0,0,0,3,7,15,31,63,127,255,511 ;moves to complete, corresponding to num of plates                      
+;	current_move dw 0
+;	mov_str dw 10 dup(?)
+;    mov_str_length dw ($-mov_str)
 data ends
 
 stack segment
@@ -392,7 +403,7 @@ MOVE_PLATE ENDP
 PRINT_INFO_STRING PROC NEAR
     PUSHA
     MOV AH,13h
-    MOV AL,1
+    MOV AL,0
     MOV BH,0
     MOV BL,0100b		;red
     MOV CX,Disp_str_length
@@ -407,19 +418,22 @@ PRINT_INFO_STRING PROC NEAR
 PRINT_INFO_STRING ENDP  
 
 DELAY PROC NEAR
-    PUSHA   
+    PUSHA      
+    
+    call speed_adj
+    
     MOV AH,00H
     INT 1Ah
     
     MOV BX,DX    ;bx = lower byte of clock when enter
-    MOV AX,CX    ;AX = higher byte of clock when enter
-    ADD BX,14    ;AX:BX = time to exit the delay, 14 times above the current clock
-    INC AX       
+    MOV SI,CX    ;SI = higher byte of clock when enter
+    ADD BX,delay_time    ;AX:BX = time to exit the delay, 14 times above the current clock
+    INC SI       
     
 delay_loop:
     MOV AH,00H
     INT 1Ah
-    CMP AX,CX
+    CMP SI,CX
     JE  exit
     CMP DX,BX
     JA  exit
@@ -429,6 +443,90 @@ exit:
     RET
 DELAY ENDP
 
+SPEED_ADJ PROC NEAR
+    PUSHA
+    MOV AH,1
+    INT 16H
+    CMP AL,'['
+    JZ sp_slow
+    CMP AL,']'
+    JZ sp_fast
+    JMP sp_unchange
+
+sp_slow:
+    ADD delay_time,5
+    MOV CX,speed_down_str_length 
+    LEA bp,speed_down_str  
+    JMP sp_change
+
+sp_fast:
+    SUB delay_time,5
+    MOV CX,speed_up_str_length
+    LEA bp,speed_up_str
+    JMP sp_change
+    
+sp_change:
+	MOV AL,0
+    MOV BH,0
+    MOV BL,1101b	;light magenta  
+    MOV DL,1
+    MOV DH,24
+    PUSH DS
+    POP ES 
+    MOV AH,13H
+    INT 10H
+    MOV AH,0CH
+    MOV AL,00H		;flush keyboard buffer
+    INT 21H
+    JMP sp_exit
+    
+    
+sp_unchange:
+	MOV CX,speed_hint_str_length
+    LEA bp,speed_hint_str 
+    MOV AL,0
+    MOV BH,0
+    MOV BL,1100b
+    MOV DL,1
+    MOV DH,23
+    PUSH DS
+    POP ES
+    MOV AH,13H
+    INT 10H
+
+sp_exit:   
+    POPA
+    RET
+SPEED_ADJ ENDP
+
+;MOVE_TIME_UPDATE PROC NEAR
+;	PUSHA
+;    MOV SI,0
+;    MOV AX,current_move
+;    MOV mov_str[SI],AX
+;    ADD SI,2
+;    MOV AX,total_move_num
+;    MOV mov_str[SI],AX
+;    
+;    MOV CX,mov_str_length
+;    LEA bp,mov_str
+;    MOV AL,0
+;    MOV BH,0
+;    MOV BL,1100b
+;    MOV DL,1
+;    MOV DH,9
+;    PUSH DS
+;    POP ES
+;    MOV AH,13H
+;    INT 10H
+;	POPA
+;	RET
+;MOVE_TIME_UPDATE ENDP
+ 
+
 code ends
 end main
+
+
+
 
