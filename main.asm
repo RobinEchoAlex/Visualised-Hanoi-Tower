@@ -36,7 +36,7 @@ MAIN PROC FAR
     call init  
     call draw_base
     call draw_pillar
-    MOV PLATE_NUM,6            ;TODO can be customised
+    MOV PLATE_NUM,4            ;TODO can be customised
     call init_plate   
     
     MOV AX,PLATE_NUM
@@ -65,10 +65,11 @@ INIT ENDP
 INIT_PLATE PROC NEAR
     PUSHA
     MOV active_pillar,0
-    MOV CX,PLATE_NUM
+    MOV CX,9
+    MOV DX,PLATE_NUM    ;loop counter
     MOV SI,10
-    MOV DI,35
-ip_loop1:
+    MOV DI,35  
+ip_loop1: 
     MOV BX,pillarA+2    ;calculate X
     SUB BX,DI 
     SUB DI,3
@@ -97,7 +98,9 @@ ip_loop1:
     ADD SI,2 
     INC pillarA
     call DRAW_PLATE
-    LOOP ip_loop1           
+    DEC CX
+    DEC DX
+    JNZ ip_loop1          
     POPA
     RET
 INIT_PLATE ENDP
@@ -370,4 +373,5 @@ MOVE_PLATE ENDP
 
 code ends
 end main
+
 
