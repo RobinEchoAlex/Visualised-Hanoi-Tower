@@ -367,12 +367,7 @@ mp_move2:
 ;    INT 21H         
     call print_info_string
 
-    MOV CX,65535
-delay:
-    LOOP delay 
-    MOV CX,65535
-delay2:
-	LOOP delay2
+    call delay
     
     POPA
     POP BP
@@ -394,10 +389,34 @@ PRINT_INFO_STRING PROC NEAR
     INT 10H
     POPA
     RET
-PRINT_INFO_STRING ENDP
+PRINT_INFO_STRING ENDP  
+
+DELAY PROC NEAR
+    PUSHA   
+    MOV AH,00H
+    INT 1Ah
+    
+    MOV BX,DX    ;bx = lower byte of clock when enter
+    MOV AX,CX    ;AX = higher byte of clock when enter
+    ADD BX,14    ;AX:BX = time to exit the delay, 14 times above the current clock
+    INC AX       
+    
+delay_loop:
+    MOV AH,00H
+    INT 1Ah
+    CMP AX,CX
+    JE  exit
+    CMP DX,BX
+    JA  exit
+    JMP delay_loop
+exit:
+    POPA
+    RET
+DELAY ENDP
 
 code ends
 end main
+
 
 
 
