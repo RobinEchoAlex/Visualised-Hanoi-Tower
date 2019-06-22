@@ -12,6 +12,7 @@ data segment
     active_pillar dw 0          ;use to pass parameter to DRAW_PLATE and ERASE_PLATE
                                 ;0 for A, 1 for B, 2 for C     
     DISP DB 0AH , 0DH , ' MOVE ONE FROM '
+    plate_half_width dw 0		;use to compare, if the drawing pointer reaches half-width of the plate, draw a white pillar instead of erasing 
 SRC DB ?
     DB ' TO '
 DST DB ? 
@@ -36,7 +37,7 @@ MAIN PROC FAR
     call init  
     call draw_base
     call draw_pillar
-    MOV PLATE_NUM,4            ;TODO can be customised
+    MOV PLATE_NUM,5            ;TODO can be customised
     call init_plate   
     
     MOV AX,PLATE_NUM
@@ -172,10 +173,17 @@ ep_deviation:
     PUSH DI     ;save the start address
     MOV CX,BOX_HEIGHT  ;CX = height of box
 oe_loop:
-    MOV DX,pillarA[SI+4]       ;DX = half width of box 
-    SHL DX,1                      
-ie_loop:           
-    MOV BX,0          
+    MOV DX,pillarA[SI+4]       ;DX = half width of box
+    mov plate_half_width,DX  
+    SHL DX,1                     
+ie_loop:    
+	CMP plate_half_width,DX
+	JNZ black
+	MOV BX,PILLAR_COLOUR
+	JMP colour_setting_finished
+black:       
+    MOV BX,0
+colour_setting_finished:          
     MOV es:[di],BX   ;colour of the box
     INC DI
     DEC DX
@@ -373,5 +381,6 @@ MOVE_PLATE ENDP
 
 code ends
 end main
+
 
 
