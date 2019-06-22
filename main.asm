@@ -11,12 +11,12 @@ data segment
     PALATTE DB 2,126,150,172,195,213,43,12,7,31 
     active_pillar dw 0          ;use to pass parameter to DRAW_PLATE and ERASE_PLATE
                                 ;0 for A, 1 for B, 2 for C     
-    DISP DB 0AH , 0DH , ' MOVE ONE FROM '
-    plate_half_width dw 0		;use to compare, if the drawing pointer reaches half-width of the plate, draw a white pillar instead of erasing 
+    DISP DB 0AH , 0DH , ' MOVE ONE FROM '	;the string to print in the screen, since length is required in int 10h/ah 13h so end character '$' is not required 
 SRC DB ?
     DB ' TO '
-DST DB ? 
-    DB 0AH , 0DH , '$'                            
+DST DB ? 							  
+    DISP_Str_LENGTH dw ($-DiSP)
+    plate_half_width dw 0		;use to compare, if the drawing pointer reaches half-width of the plate, draw a white pillar instead of erasing                            
 data ends
 
 stack segment
@@ -104,7 +104,7 @@ ip_loop1:
     JNZ ip_loop1          
     POPA
     RET
-INIT_PLATE ENDP
+INIT_PLATE ENDP 
 
 DRAW_PLATE PROC NEAR
     PUSHA
@@ -365,7 +365,7 @@ mp_move2:
     ;MOV AH,9
 ;    LEA DX,DISP
 ;    INT 21H         
-
+    call print_info_string
 
     MOV CX,65535
 delay:
@@ -377,10 +377,28 @@ delay2:
     POPA
     POP BP
     RET 4
-MOVE_PLATE ENDP
+MOVE_PLATE ENDP 
+
+PRINT_INFO_STRING PROC NEAR
+    PUSHA
+    MOV AH,13h
+    MOV AL,1
+    MOV BH,0
+    MOV BL,0100b		;red
+    MOV CX,Disp_str_length
+    MOV DL,1
+    MOV DH,1
+    PUSH DS
+    POP ES
+    LEA BP,DISP
+    INT 10H
+    POPA
+    RET
+PRINT_INFO_STRING ENDP
 
 code ends
 end main
+
 
 
 
