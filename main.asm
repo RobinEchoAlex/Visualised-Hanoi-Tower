@@ -7,7 +7,7 @@ data segment
     BOX_HEIGHT EQU 15
     PILLAR_Y EQU 30
     PILLAR_COLOUR EQU 15
-    PALATTE DB 2,126,150,172,195,213,43,12,7,31 
+    PALATTE DB 2,0Dh,2Bh,2Dh,35h,40h,49h,51h,5Ah,68h
     active_pillar dw 0          ;use to pass parameter to DRAW_PLATE and ERASE_PLATE
                                 ;0 for A, 1 for B, 2 for C     
     DISP DB 0AH , 0DH , ' MOVE ONE FROM '	;the string to print in the screen, since length is required in int 10h/ah 13h so end character '$' is not required 
@@ -16,7 +16,13 @@ SRC DB ?
 DST DB ? 							  
     DISP_Str_LENGTH dw ($-DiSP)
     plate_half_width dw 0		;use to compare, if the drawing pointer reaches half-width of the plate, draw a white pillar instead of erasing  
-    hint_str db "Enter the number of plates, between 3-9:",'$'  
+    hint_str db 'Enter the number of plates, between 3-9:',
+    			0AH,0DH,
+    			"press any other key indicates for plates",
+    			0Ah,0DH,0Ah,0Dh,
+    			"please notice that in Windows 10, plate selection may NOT work",
+    			0AH,0DH,
+    			"speed control is not supported too",'$'  
     delay_time dw 15             ;time to sleep, measured by system clock ticks  
     speed_down_str db "speed decreased!"
     speed_down_str_length dw ($-speed_down_str)
@@ -24,7 +30,7 @@ DST DB ?
     speed_up_str_length dw ($-speed_up_str)
     speed_hint_str db "press [ to slow down, ] to speed up"
     speed_hint_str_length dw ( $-speed_hint_str)
-    total_move_num dw 0,0,3,7,15,31,63,127,255,511,1023,2047 ;moves to complete, corresponding to num of plates                      
+    total_move_num dw 0,1,3,7,15,31,63,127,255,511,1023,2047 ;moves to complete, corresponding to num of plates                      
 	current_move dw 0
 data ends
 
@@ -72,7 +78,15 @@ INIT PROC NEAR
 	INT 21H
 	MOV AH,0
 	SUB AL,30H
+	CMP AL,0
+	JB default_9
+	CMP AL,9
+	JA default_9
 	MOV PLATE_num,AX
+	JMP in_exit
+default_9:
+	MOV PLATE_num,9
+in_exit:	
 	POPA
 	RET
 INIT ENDP
@@ -546,6 +560,7 @@ DRAW_PROGRESS_BAR ENDP
 
 code ends
 end main
+
 
 
 
