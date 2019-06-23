@@ -24,10 +24,8 @@ DST DB ?
     speed_up_str_length dw ($-speed_up_str)
     speed_hint_str db "press [ to slow down, ] to speed up"
     speed_hint_str_length dw ( $-speed_hint_str)
-   ; total_move_num dw 0,0,0,3,7,15,31,63,127,255,511 ;moves to complete, corresponding to num of plates                      
-;	current_move dw 0
-;	mov_str dw 10 dup(?)
-;    mov_str_length dw ($-mov_str)
+    total_move_num dw 0,0,3,7,15,31,63,127,255,511,1023,2047 ;moves to complete, corresponding to num of plates                      
+	current_move dw 0
 data ends
 
 stack segment
@@ -146,22 +144,22 @@ de_deviation:
     MOV BX,10
     MUL BL                  ;deviation is the number of plates(AX) * the bytes every plate take & head info(10)
     ADD SI,AX
-    mov ax, 0A000h ; the offset to video memory
-    mov es, ax ; load it to ES through AX, becouse immediate operation is not allowed on ES
+    mov ax, 0A000h          ; the offset to video memory
+    mov es, ax              ; load it to ES through AX, becouse immediate operation is not allowed on ES
     MOV DX,0
     MOV BX,pillarA[SI+2]    ;start row
     MOV AX,320
     MUL BX  
-    MOV DI,AX   ;start row's address
-    ADD DI,pillarA[SI]    ;add start column
-    PUSH DI     ;save the start address
-    MOV CX,BOX_HEIGHT  ;CX = height of box
+    MOV DI,AX               ;start row's address
+    ADD DI,pillarA[SI]      ;add start column
+    PUSH DI                 ;save the start address
+    MOV CX,BOX_HEIGHT       ;CX = height of box
 o_loop:
-    MOV DX,pillarA[SI+4]       ;DX = half width of box 
+    MOV DX,pillarA[SI+4]    ;DX = half width of box 
     SHL DX,1                      
 i_loop:           
     MOV BX,pillarA[SI+8]           
-    MOV es:[di],BX   ;colour of the box
+    MOV es:[di],BX          ;colour of the box
     INC DI
     DEC DX
     JNZ i_loop
@@ -387,11 +385,10 @@ mp_move2:
     MOV AX,pillarA[SI+8]
     MOV pillarA[DI+8],AX    ;colour
     
-    CALL DRAW_PLATE
-    ;MOV AH,9
-;    LEA DX,DISP
-;    INT 21H         
+    CALL DRAW_PLATE      
     call print_info_string
+    INC  current_move
+    call draw_progress_bar
 
     call delay
     
@@ -499,33 +496,59 @@ sp_exit:
     RET
 SPEED_ADJ ENDP
 
-;MOVE_TIME_UPDATE PROC NEAR
-;	PUSHA
-;    MOV SI,0
-;    MOV AX,current_move
-;    MOV mov_str[SI],AX
-;    ADD SI,2
-;    MOV AX,total_move_num
-;    MOV mov_str[SI],AX
-;    
-;    MOV CX,mov_str_length
-;    LEA bp,mov_str
-;    MOV AL,0
-;    MOV BH,0
-;    MOV BL,1100b
-;    MOV DL,1
-;    MOV DH,9
-;    PUSH DS
-;    POP ES
-;    MOV AH,13H
-;    INT 10H
-;	POPA
-;	RET
-;MOVE_TIME_UPDATE ENDP
+;the number of pixels to print = current_move / total_move * pixel_num (320)   
+;by applying exchange law, print = current_move * 320 / total_move 
+;for convenience, the remainder is ignored
+DRAW_PROGRESS_BAR PROC NEAR       
+	PUSHA                         
+    
+    MOV AX,current_move
+    MOV DX,0
+    MOV BX,320 
+    MUL BX
+    MOV SI,plate_num
+    SHL SI,1                      ;total num of moves is stored as word, so the pointer = plate_num *2
+    MOV BX,total_move_num[SI]   ;retrieve total num of moves for current plate num
+    DIV BX
+    ;now AX stores the width of progress bar 
+    MOV SI,AX				;SI stores width for outer loop recover
+    MOV BX,0A000H
+    MOV ES,bX  
+
+treat_9:					;if plate num = 9, the first move is 0.6%, which is regarded as 0 in loop counter, causing FFFF loop problem
+    CMP plate_num,9
+    JNE normal
+    CMP current_move,1
+    JNE normal
+    MOV SI,1
+    
+normal:
+    MOV DI,0                ;start row's address
+    PUSH DI                 ;save the start address
+    MOV CX,5                ;CX = height of bar
+m_o_loop:    
+	MOV AX,SI                             
+m_i_loop:           
+    MOV BX,10               ;lime colour          
+    MOV es:[di],BX          ;colour of the box
+    INC DI
+    DEC AX
+    JNZ m_i_loop
+    POP DI
+    ADD DI,320
+    PUSH DI
+    LOOP m_o_loop
+    POP DI
+	POPA
+	RET
+DRAW_PROGRESS_BAR ENDP
  
 
 code ends
 end main
+
+
+
 
 
 
