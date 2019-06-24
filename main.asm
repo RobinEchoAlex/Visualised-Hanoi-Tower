@@ -2,19 +2,19 @@
 data segment     
     PLATE_NUM DW 0
     pillarA dw 0,60,180,'A',0,45 dup(0)
-    pillarB dw 0,160,180,'A',0,45 dup(0)
-    pillarC dw 0,260,180,'A',0,45 dup(0)  
+    pillarB dw 0,160,180,'B',0,45 dup(0)
+    pillarC dw 0,260,180,'C',0,45 dup(0)  
     BOX_HEIGHT EQU 15
     PILLAR_Y EQU 30
     PILLAR_COLOUR EQU 15
     PALATTE DB 2,0Dh,2Bh,2Dh,35h,40h,49h,51h,5Ah,68h
     active_pillar dw 0          ;use to pass parameter to DRAW_PLATE and ERASE_PLATE
                                 ;0 for A, 1 for B, 2 for C     
-    DISP DB 0AH , 0DH , ' MOVE ONE FROM '	;the string to print in the screen, since length is required in int 10h/ah 13h so end character '$' is not required 
-SRC DB ?
+    move_info_str DB 0AH , 0DH , ' MOVE 1 PLATE FROM '	;the string to print in the screen, since length is required in int 10h/ah 13h so end character '$' is not required 
+src DB ?
     DB ' TO '
-DST DB ? 							  
-    DISP_Str_LENGTH dw ($-DiSP)
+dst DB ? 							  
+    disp_str_length dw ($-move_info_str)
     plate_half_width dw 0		;use to compare, if the drawing pointer reaches half-width of the plate, draw a white pillar instead of erasing  
     hint_str db 'Enter the number of plates, between 3-9:',
     			0AH,0DH,
@@ -65,7 +65,7 @@ MAIN PROC FAR
     PUSH DI
     CALL HANOI_CON
 
-    mov ax, 4c00h ; exit to operating system.
+    mov ax, 4c00h 
     int 21h    
 MAIN ENDP 
 
@@ -79,13 +79,13 @@ INIT PROC NEAR
 	MOV AH,0
 	SUB AL,30H
 	CMP AL,0
-	JB default_9
+	JB default_5
 	CMP AL,9
-	JA default_9
+	JA default_5
 	MOV PLATE_num,AX
 	JMP in_exit
-default_9:
-	MOV PLATE_num,9
+default_5:
+	MOV PLATE_num,5
 in_exit:	
 	POPA
 	RET
@@ -290,12 +290,12 @@ DRAW_PILLAR ENDP
 HANOI_CON PROC NEAR
     PUSH BP
     MOV BP,SP
-    MOV AX,10[BP]
-    MOV SI,8[BP]
-    MOV BX,4[BP]
-    MOV DI,6[BP]
+    MOV AX,[BP+10]
+    MOV SI,[BP+8]
+    MOV DI,[BP+6]
+    MOV BX,[BP+4]
     CMP AL,1
-    JZ move_one
+    JE move_one		;plate_num=1 , end
     DEC AX
     PUSH AX
     PUSH SI
@@ -303,26 +303,26 @@ HANOI_CON PROC NEAR
     PUSH DI
     CALL HANOI_CON ;set parameters and call hanoi to move n-1 plates
     
-    MOV SI,8[BP]
-    MOV DI,4[BP]
+    MOV SI,[BP+8]
+    MOV DI,[BP+4]
     PUSH SI
     PUSH DI
-    CALL MOVE_PLATE
+    CALL MOVE_PLATE    ;mov the last one
     
-    MOV AX,10[BP]
-    MOV SI,6[BP]
-    MOV BX,8[BP]
-    MOV DI,4[BP]
-    DEC AX
+    MOV AX,[BP+10]
+    MOV BX,[BP+8]
+    MOV SI,[BP+6]
+    MOV DI,[BP+4]
+    DEC AX              ;n-1 plates
     PUSH AX
     PUSH SI
     PUSH BX
     PUSH DI
-    CALL HANOI_CON
+    CALL HANOI_CON       
     JMP exit_hanoi
 move_one:
-    MOV SI,8[BP]
-    MOV DI,4[BP]
+    MOV SI,[BP+8]
+    MOV DI,[BP+4]
     PUSH SI
     PUSH DI
     CALL MOVE_PLATE
@@ -337,7 +337,7 @@ MOVE_PLATE PROC NEAR
     PUSHA
     MOV AX,6[BP]
     MOV SRC,AL
-    SUB AL,41H      ;'ABC' to 012  
+    SUB AL,41H                  ;'ABC' to 012  
     MOV active_pillar,AX
     CALL ERASE_PLATE
     
@@ -351,10 +351,10 @@ MOVE_PLATE PROC NEAR
     
 mp_move1:    
     MOV AX,pillarA[SI]
-    DEC pillarA[SI]         ;number of the plate in the pillar--
+    DEC pillarA[SI]              ;number of the plate in the pillar--
     MOV BX,10
-    MUL BL                  ;deviation is the number of plates(AX) * the bytes every plate take & head info(10)
-    ADD SI,AX               ;SI point to the start byte of the plate to move
+    MUL BL                       ;deviation is the number of plates(AX) * the bytes every plate take & head info(10)
+    ADD SI,AX                    ;SI point to the start byte of the plate to move
     
     MOV AX,4[BP]
     MOV DST,AL
@@ -422,7 +422,7 @@ PRINT_INFO_STRING PROC NEAR
     MOV DH,1
     PUSH DS
     POP ES
-    LEA BP,DISP
+    LEA BP,move_info_str
     INT 10H
     POPA
     RET
@@ -560,6 +560,8 @@ DRAW_PROGRESS_BAR ENDP
 
 code ends
 end main
+
+
 
 
 
