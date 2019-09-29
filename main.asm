@@ -18,11 +18,8 @@ dst DB ?
     plate_half_width dw 0		;use to compare, if the drawing pointer reaches half-width of the plate, draw a white pillar instead of erasing  
     hint_str db 'Enter the number of plates, between 3-9:',
     			0AH,0DH,
-    			"press any other key indicates for plates",
-    			0Ah,0DH,0Ah,0Dh,
-    			"please notice that in Windows 10, plate selection may NOT work",
-    			0AH,0DH,
-    			"speed control is not supported too",'$'  
+    			"press any other key indicates 4 plates",
+    			0Ah,0DH,0Ah,0Dh,'$'  
     delay_time dw 15             ;time to sleep, measured by system clock ticks  
     speed_down_str db "speed decreased!"
     speed_down_str_length dw ($-speed_down_str)
@@ -560,6 +557,7 @@ DRAW_PROGRESS_BAR ENDP
 
 code ends
 end main
+
 
 
 
