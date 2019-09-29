@@ -10,12 +10,12 @@ data segment
     PALATTE DB 2,0Dh,2Bh,2Dh,35h,40h,49h,51h,5Ah,68h
     active_pillar dw 0          ;use to pass parameter to DRAW_PLATE and ERASE_PLATE
                                 ;0 for A, 1 for B, 2 for C     
-    move_info_str DB 0AH , 0DH , ' MOVE 1 PLATE FROM '	;the string to print in the screen, since length is required in int 10h/ah 13h so end character '$' is not required 
+    move_info_str DB 0AH , 0DH , ' MOVE 1 PLATE FROM '	;the string to print on the screen, since length is required in int 10h/ah 13h so end character '$' is not required 
 src DB ?
     DB ' TO '
 dst DB ? 							  
     disp_str_length dw ($-move_info_str)
-    plate_half_width dw 0		;use to compare, if the drawing pointer reaches half-width of the plate, draw a white pillar instead of erasing  
+    plate_half_width dw 0		;is used to compare, if the drawing pointer reaches half-width of the plate, draw a white pillar instead of erasing  
     hint_str db 'Enter the number of plates, between 3-9:',
     			0AH,0DH,
     			"press any other key indicates 4 plates",
@@ -144,12 +144,12 @@ INIT_PLATE ENDP
 DRAW_PLATE PROC NEAR
     PUSHA
     MOV SI,0
-    CMP active_pillar,0      ;locate which pillar
+    CMP active_pillar,0     ;locate which pillar
     JZ de_deviation    
-    ADd SI,100                   ;point to B pillar
+    ADd SI,100              ;point to B pillar
     CMP active_pillar,1
     JZ de_deviation
-    ADD SI,100                   ;point to C pillar
+    ADD SI,100              ;point to C pillar
 de_deviation:
     MOV AX,pillarA[SI]
     MOV BX,10
@@ -195,18 +195,18 @@ ERASE_PLATE PROC NEAR
 ep_deviation:
     MOV AX,pillarA[SI]
     MOV BX,10
-    MUL BL                  ;deviation is the number of plates(AX) * the bytes every plate take & head info(10)
+    MUL BL                 		 ;deviation is the number of plates(AX) * the bytes every plate take & head info(10)
     ADD SI,AX
-    mov ax, 0A000h ; the offset to video memory
-    mov es, ax ; load it to ES through AX, becouse immediate operation is not allowed on ES
+    mov ax, 0A000h 					; the offset to video memory
+    mov es, ax 					; load it to ES through AX, becouse immediate operation is not allowed on ES
     MOV DX,0
-    MOV BX,pillarA[SI+2]    ;start row
+    MOV BX,pillarA[SI+2]   		 ;start row
     MOV AX,320
     MUL BX  
-    MOV DI,AX   ;start row's address
-    ADD DI,pillarA[SI]    ;add start column
-    PUSH DI     ;save the start address
-    MOV CX,BOX_HEIGHT  ;CX = height of box
+    MOV DI,AX   				;start row's address
+    ADD DI,pillarA[SI]   		 ;add start column
+    PUSH DI     				;save the start address
+    MOV CX,BOX_HEIGHT  			;CX = height of box
 oe_loop:
     MOV DX,pillarA[SI+4]       ;DX = half width of box
     mov plate_half_width,DX  
@@ -219,7 +219,7 @@ ie_loop:
 black:       
     MOV BX,0
 colour_setting_finished:          
-    MOV es:[di],BX   ;colour of the box
+    MOV es:[di],BX  			 ;colour of the box
     INC DI
     DEC DX
     JNZ ie_loop
@@ -292,13 +292,13 @@ HANOI_CON PROC NEAR
     MOV DI,[BP+6]
     MOV BX,[BP+4]
     CMP AL,1
-    JE move_one		;plate_num=1 , end
+    JE move_one		    ;plate_num=1 , end
     DEC AX
     PUSH AX
     PUSH SI
     PUSH BX
     PUSH DI
-    CALL HANOI_CON ;set parameters and call hanoi to move n-1 plates
+    CALL HANOI_CON 		;set parameters and call hanoi to move n-1 plates
     
     MOV SI,[BP+8]
     MOV DI,[BP+4]
@@ -433,8 +433,8 @@ DELAY PROC NEAR
     MOV AH,00H
     INT 1Ah
     
-    MOV BX,DX    ;bx = lower byte of clock when enter
-    MOV SI,CX    ;SI = higher byte of clock when enter
+    MOV BX,DX   		 ;bx = lower byte of clock when enter
+    MOV SI,CX   		 ;SI = higher byte of clock when enter
     ADD BX,delay_time    ;AX:BX = time to exit the delay, 14 times above the current clock
     INC SI       
     
@@ -522,7 +522,7 @@ DRAW_PROGRESS_BAR PROC NEAR
     MOV BX,total_move_num[SI]   ;retrieve total num of moves for current plate num
     DIV BX
     ;now AX stores the width of progress bar 
-    MOV SI,AX				;SI stores width for outer loop recover
+    MOV SI,AX					;SI stores width for outer loop recover
     MOV BX,0A000H
     MOV ES,bX  
 
@@ -557,6 +557,7 @@ DRAW_PROGRESS_BAR ENDP
 
 code ends
 end main
+
 
 
 
