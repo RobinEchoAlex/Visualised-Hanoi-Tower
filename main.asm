@@ -7,28 +7,29 @@ data segment
     BOX_HEIGHT EQU 15
     PILLAR_Y EQU 30
     PILLAR_COLOUR EQU 15
-    PALATTE DB 2,0Dh,2Bh,2Dh,35h,40h,49h,51h,5Ah,68h
-    active_pillar dw 0          ;use to pass parameter to DRAW_PLATE and ERASE_PLATE
-                                ;0 for A, 1 for B, 2 for C     
-    move_info_str DB 0AH , 0DH , ' MOVE 1 PLATE FROM '	;the string to print on the screen, since length is required in int 10h/ah 13h so end character '$' is not required 
+    PALATTE DB 2,0Dh,2Bh,2Dh,35h,40h,49h,51h,5Ah,68h    ;the colour of plates
+    active_pillar dw 0                                  ;use to pass parameter to DRAW_PLATE and ERASE_PLATE
+                                                        ;0 for A, 1 for B, 2 for C     
+    move_info_str DB 0AH , 0DH , ' MOVE 1 PLATE FROM '  ;the string to print on the screen, since length is required in int 10h/ah 13h so end character '$' is not required 
 src DB ?
     DB ' TO '
-dst DB ? 							  
+dst DB ?                               
     disp_str_length dw ($-move_info_str)
-    plate_half_width dw 0		;is used to compare, if the drawing pointer reaches half-width of the plate, draw a white pillar instead of erasing  
+    plate_half_width dw 0                               ;is used to compare, if the drawing pointer reaches half-width of the plate, draw a white pillar instead of erasing  
     hint_str db 'Enter the number of plates, between 3-9:',
-    			0AH,0DH,
-    			"press any other key indicates 4 plates",
-    			0Ah,0DH,0Ah,0Dh,'$'  
-    delay_time dw 15             ;time to sleep, measured by system clock ticks  
+                0AH,0DH,
+                "press any other key indicates 4 plates",
+                0Ah,0DH,0Ah,0Dh,'$'  
+    delay_time dw 15                                    ;time to sleep, measured by system clock ticks  
     speed_down_str db "speed decreased!"
     speed_down_str_length dw ($-speed_down_str)
     speed_up_str db "speed increased!"
     speed_up_str_length dw ($-speed_up_str)
     speed_hint_str db "press [ to slow down, ] to speed up"
     speed_hint_str_length dw ( $-speed_hint_str)
-    total_move_num dw 0,1,3,7,15,31,63,127,255,511,1023,2047 ;moves to complete, corresponding to num of plates                      
-	current_move dw 0
+    total_move_num dw 0,1,3,7,15,31,63,127,255,511,1023,2047 
+                                                        ;moves to complete the process, corresponding to num of plates                      
+    current_move dw 0
 data ends
 
 stack segment
@@ -39,12 +40,12 @@ code segment
     assume ds:data,ss:stack,cs:code
 MAIN PROC FAR                      
     
-    mov ax, data
-    mov ds, ax
-    mov ax,stack
-    mov ss,ax
-    mov sp,1024
-    mov ax,0
+    MOV ax, data
+    MOV ds, ax
+    MOV ax,stack
+    MOV ss,ax
+    MOV sp,1024
+    MOV ax,0
     
     call init 
     call set_vga 
@@ -62,35 +63,35 @@ MAIN PROC FAR
     PUSH DI
     CALL HANOI_CON
 
-    mov ax, 4c00h 
+    MOV ax, 4c00h 
     int 21h    
 MAIN ENDP 
 
 INIT PROC NEAR
-	PUSHA
-	LEA DX,hint_STR
-	MOV AH,9
-	INT 21H
-	MOV AH,1	;read user's choice
-	INT 21H
-	MOV AH,0
-	SUB AL,30H
-	CMP AL,0
-	JB default_5
-	CMP AL,9
-	JA default_5
-	MOV PLATE_num,AX
-	JMP in_exit
+    PUSHA
+    LEA DX,hint_STR
+    MOV AH,9
+    INT 21H
+    MOV AH,1             ;read user's choice
+    INT 21H
+    MOV AH,0
+    SUB AL,30H
+    CMP AL,0
+    JB default_5
+    CMP AL,9
+    JA default_5
+    MOV PLATE_num,AX
+    JMP in_exit
 default_5:
-	MOV PLATE_num,5
-in_exit:	
-	POPA
-	RET
+    MOV PLATE_num,5
+in_exit:    
+    POPA
+    RET
 INIT ENDP
 
 SET_VGA PROC NEAR
-	PUSH AX
-	MOV AH,9 
+    PUSH AX
+    MOV AH,9 
     MOV AH,00H
     MOV AL,13H
     INT 10H
@@ -102,17 +103,17 @@ INIT_PLATE PROC NEAR
     PUSHA
     MOV active_pillar,0
     MOV CX,9
-    MOV DX,PLATE_NUM    ;loop counter
+    MOV DX,PLATE_NUM     ;loop counter
     MOV SI,10
     MOV DI,35  
 ip_loop1: 
-    MOV BX,pillarA+2    ;calculate X
+    MOV BX,pillarA+2     ;calculate X
     SUB BX,DI 
     SUB DI,3
     MOV pillarA[SI],BX  
     ADD SI,2
-    MOV AX,10       ;calculate Y
-    SUB AX,CX       ;equals to num-CX+1
+    MOV AX,10            ;calculate Y
+    SUB AX,CX            ;equals to num-CX+1
     MOV BL,15
     MUL BL
     MOV BX,AX
@@ -155,8 +156,8 @@ de_deviation:
     MOV BX,10
     MUL BL                  ;deviation is the number of plates(AX) * the bytes every plate take & head info(10)
     ADD SI,AX
-    mov ax, 0A000h          ; the offset to video memory
-    mov es, ax              ; load it to ES through AX, becouse immediate operation is not allowed on ES
+    MOV ax, 0A000h          ;the offset to video memory
+    MOV es, ax              ;load it to ES through AX, becouse immediate operation is not allowed on ES
     MOV DX,0
     MOV BX,pillarA[SI+2]    ;start row
     MOV AX,320
@@ -195,31 +196,31 @@ ERASE_PLATE PROC NEAR
 ep_deviation:
     MOV AX,pillarA[SI]
     MOV BX,10
-    MUL BL                 		 ;deviation is the number of plates(AX) * the bytes every plate take & head info(10)
+    MUL BL                       ;deviation is the number of plates(AX) * the bytes every plate take & head info(10)
     ADD SI,AX
-    mov ax, 0A000h 					; the offset to video memory
-    mov es, ax 					; load it to ES through AX, becouse immediate operation is not allowed on ES
+    MOV ax, 0A000h               ;the offset to video memory
+    MOV es, ax                   ;load it to ES through AX, becouse immediate operation is not allowed on ES
     MOV DX,0
-    MOV BX,pillarA[SI+2]   		 ;start row
+    MOV BX,pillarA[SI+2]         ;start row
     MOV AX,320
     MUL BX  
-    MOV DI,AX   				;start row's address
-    ADD DI,pillarA[SI]   		 ;add start column
-    PUSH DI     				;save the start address
-    MOV CX,BOX_HEIGHT  			;CX = height of box
+    MOV DI,AX                    ;start row's address
+    ADD DI,pillarA[SI]           ;add start column
+    PUSH DI                      ;save the start address
+    MOV CX,BOX_HEIGHT            ;CX = height of box
 oe_loop:
-    MOV DX,pillarA[SI+4]       ;DX = half width of box
-    mov plate_half_width,DX  
+    MOV DX,pillarA[SI+4]         ;DX = half width of box
+    MOV plate_half_width,DX  
     SHL DX,1                     
 ie_loop:    
-	CMP plate_half_width,DX
-	JNZ black
-	MOV BX,PILLAR_COLOUR
-	JMP colour_setting_finished
+    CMP plate_half_width,DX
+    JNZ black
+    MOV BX,PILLAR_COLOUR
+    JMP colour_setting_finished
 black:       
     MOV BX,0
 colour_setting_finished:          
-    MOV es:[di],BX  			 ;colour of the box
+    MOV es:[di],BX               ;colour of the box
     INC DI
     DEC DX
     JNZ ie_loop
@@ -292,19 +293,19 @@ HANOI_CON PROC NEAR
     MOV DI,[BP+6]
     MOV BX,[BP+4]
     CMP AL,1
-    JE move_one		    ;plate_num=1 , end
+    JE move_one         ;if plate_num=1, end
     DEC AX
     PUSH AX
     PUSH SI
     PUSH BX
     PUSH DI
-    CALL HANOI_CON 		;set parameters and call hanoi to move n-1 plates
+    CALL HANOI_CON      ;set parameters and call hanoi to move n-1 plates
     
     MOV SI,[BP+8]
     MOV DI,[BP+4]
     PUSH SI
     PUSH DI
-    CALL MOVE_PLATE    ;mov the last one
+    CALL MOVE_PLATE     ;mov the last one
     
     MOV AX,[BP+10]
     MOV BX,[BP+8]
@@ -334,7 +335,7 @@ MOVE_PLATE PROC NEAR
     PUSHA
     MOV AX,6[BP]
     MOV SRC,AL
-    SUB AL,41H                  ;'ABC' to 012  
+    SUB AL,41H                   ;'ABC' to 012  
     MOV active_pillar,AX
     CALL ERASE_PLATE
     
@@ -413,7 +414,7 @@ PRINT_INFO_STRING PROC NEAR
     MOV AH,13h
     MOV AL,0
     MOV BH,0
-    MOV BL,0100b		;red
+    MOV BL,0100b            ;red
     MOV CX,Disp_str_length
     MOV DL,1
     MOV DH,1
@@ -433,8 +434,8 @@ DELAY PROC NEAR
     MOV AH,00H
     INT 1Ah
     
-    MOV BX,DX   		 ;bx = lower byte of clock when enter
-    MOV SI,CX   		 ;SI = higher byte of clock when enter
+    MOV BX,DX            ;bx = lower byte of clock when enter
+    MOV SI,CX            ;SI = higher byte of clock when enter
     ADD BX,delay_time    ;AX:BX = time to exit the delay, 14 times above the current clock
     INC SI       
     
@@ -474,9 +475,9 @@ sp_fast:
     JMP sp_change
     
 sp_change:
-	MOV AL,0
+    MOV AL,0
     MOV BH,0
-    MOV BL,1101b	;light magenta  
+    MOV BL,1101b    ;light magenta  
     MOV DL,1
     MOV DH,24
     PUSH DS
@@ -484,13 +485,12 @@ sp_change:
     MOV AH,13H
     INT 10H
     MOV AH,0CH
-    MOV AL,00H		;flush keyboard buffer
+    MOV AL,00H        ;flush keyboard buffer
     INT 21H
     JMP sp_exit
     
-    
 sp_unchange:
-	MOV CX,speed_hint_str_length
+    MOV CX,speed_hint_str_length
     LEA bp,speed_hint_str 
     MOV AL,0
     MOV BH,0
@@ -511,7 +511,7 @@ SPEED_ADJ ENDP
 ;by applying exchange law, print = current_move * 320 / total_move 
 ;for convenience, the remainder is ignored
 DRAW_PROGRESS_BAR PROC NEAR       
-	PUSHA                         
+    PUSHA                         
     
     MOV AX,current_move
     MOV DX,0
@@ -519,14 +519,14 @@ DRAW_PROGRESS_BAR PROC NEAR
     MUL BX
     MOV SI,plate_num
     SHL SI,1                      ;total num of moves is stored as word, so the pointer = plate_num *2
-    MOV BX,total_move_num[SI]   ;retrieve total num of moves for current plate num
+    MOV BX,total_move_num[SI]     ;retrieve total num of moves for current plate num
     DIV BX
     ;now AX stores the width of progress bar 
-    MOV SI,AX					;SI stores width for outer loop recover
+    MOV SI,AX                     ;SI stores width for outer loop recover
     MOV BX,0A000H
     MOV ES,bX  
 
-treat_9:					;if plate num = 9, the first move is 0.6%, which is regarded as 0 in loop counter, causing FFFF loop problem
+treat_9:                          ;if plate num = 9, the first move is 0.6%, which is regarded as 0 in loop counter, causing FFFF loop problem
     CMP plate_num,9
     JNE normal
     CMP current_move,1
@@ -534,14 +534,14 @@ treat_9:					;if plate num = 9, the first move is 0.6%, which is regarded as 0 i
     MOV SI,1
     
 normal:
-    MOV DI,0                ;start row's address
-    PUSH DI                 ;save the start address
-    MOV CX,5                ;CX = height of bar
+    MOV DI,0                      ;start row's address
+    PUSH DI                       ;save the start address
+    MOV CX,5                      ;CX = height of bar
 m_o_loop:    
-	MOV AX,SI                             
+    MOV AX,SI                             
 m_i_loop:           
-    MOV BX,10               ;lime colour          
-    MOV es:[di],BX          ;colour of the box
+    MOV BX,10                     ;lime colour          
+    MOV es:[di],BX                ;colour of the box
     INC DI
     DEC AX
     JNZ m_i_loop
@@ -550,13 +550,14 @@ m_i_loop:
     PUSH DI
     LOOP m_o_loop
     POP DI
-	POPA
-	RET
+    POPA
+    RET
 DRAW_PROGRESS_BAR ENDP
  
 
 code ends
 end main
+
 
 
 
